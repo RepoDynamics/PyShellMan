@@ -33,3 +33,6 @@ class ShellOutput(_NamedTuple):
         if not self.succeeded:
             return f"Command failed with exit code {self.code}."
         return f"Command executed successfully."
+
+    def __str__(self):
+        return "\n".join([f"{key}: {value}" for key, value in self.details.items()])
