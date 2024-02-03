@@ -2,34 +2,34 @@ from typing import NamedTuple as _NamedTuple
 
 
 class ShellOutput(_NamedTuple):
-    cmd: str
-    out: str | bytes | None = None
-    err: str | bytes | None = None
+    command: str
     code: int | None = None
+    output: str | bytes | None = None
+    error: str | bytes | None = None
 
     @property
     def executed(self) -> bool:
         return self.code is not None
 
     @property
-    def success(self) -> bool:
+    def succeeded(self) -> bool:
         return self.code == 0
 
     @property
-    def details(self) -> tuple[str, ...]:
-        details = (
-            f"Command: {self.cmd}",
-            f"Executed: {self.executed}",
-            f"Exit Code: {self.code}",
-            f"Output: {self.out or None}",
-            f"Error: {self.err or None}",
-        )
+    def details(self) -> dict[str, str | bytes | int]:
+        details = {"Command": self.command, "Executed": self.executed}
+        if self.executed:
+            details["Exit Code"] = self.code
+        if self.output:
+            details["Output"] = self.output
+        if self.error:
+            details["Error"] = self.error
         return details
 
     @property
     def summary(self) -> str:
         if not self.executed:
             return f"Command could not be executed."
-        if not self.success:
+        if not self.succeeded:
             return f"Command failed with exit code {self.code}."
         return f"Command executed successfully."
