@@ -7,14 +7,24 @@ from pyshellman.shell import run as _run
 def run(
     command: list[str],
     cwd: str | _Path | None = None,
+    raise_execution: bool = True,
+    raise_exit_code: bool = True,
+    raise_stderr: bool = False,
     text_output: bool = True,
 ) -> _ShellOutput | None:
-    return _run(command=["python", *command], cwd=cwd, text_output=text_output)
+    kwargs = locals()
+    kwargs["command"] = ["python", *command]
+    return _run(**kwargs)
 
 
 def module(
     command: list[str],
     cwd: str | _Path | None = None,
+    raise_execution: bool = True,
+    raise_exit_code: bool = True,
+    raise_stderr: bool = False,
     text_output: bool = True,
 ) -> _ShellOutput | None:
-    return run(command=["-m", *command], cwd=cwd, text_output=text_output)
+    kwargs = locals()
+    kwargs["command"] = ["-m", *command]
+    return run(**kwargs)
