@@ -15,11 +15,11 @@ namespaces = true
 
 # ----------------------------------------- Project Metadata -------------------------------------
 [project]
-version = "0.0.0.dev5"
+version = "0.0.0.dev6"
 name = "PyShellMan"
 requires-python = ">=3.10"
 dependencies = [
     "rich >= 13.5",
-    "MDit == 0.0.0.dev16",
-    "ExceptionMan == 0.0.0.dev16",
+    "MDit == 0.0.0.dev17",
+    "ExceptionMan == 0.0.0.dev17",
 ]
