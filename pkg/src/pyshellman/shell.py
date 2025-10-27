@@ -23,9 +23,12 @@ class Runner:
         stream_stdout: bool = False,
         stream_stderr: bool = False,
         raise_execution: bool = True,
+        raise_timeout: bool = True,
         raise_exit_code: bool = True,
         raise_stderr: bool = False,
         text_output: bool = True,
+        timeout: float | None = None,
+        subprocess_kwargs: dict | None = None,
         logger = None,
         log_title: str = "Shell Process",
         log_level_execution: LogLevel = "critical",
@@ -39,9 +42,12 @@ class Runner:
         self.stream_stdout = stream_stdout
         self.stream_stderr = stream_stderr
         self.raise_execution = raise_execution
+        self.raise_timeout = raise_timeout
         self.raise_exit_code = raise_exit_code
         self.raise_stderr = raise_stderr
         self.text_output = text_output
+        self.timeout = timeout
+        self.subprocess_kwargs = subprocess_kwargs or {}
         self.logger = logger
         self.log_title = log_title
         self.log_level_execution = log_level_execution
@@ -59,9 +65,12 @@ class Runner:
         stream_stdout: bool | None = None,
         stream_stderr: bool | None = None,
         raise_execution: bool | None = None,
+        raise_timeout: bool | None = None,
         raise_exit_code: bool | None = None,
         raise_stderr: bool | None = None,
         text_output: bool | None = None,
+        timeout: float | None = None,
+        subprocess_kwargs: dict | None = None,
         log_title: str | None = None,
         log_level_execution: LogLevel | None = None,
         log_level_exit_code: LogLevel | None = None,
@@ -108,6 +117,8 @@ class Runner:
             )
         if not output.executed and args.raise_execution:
             raise _exception.PyShellManExecutionError(output=output)
+        if output.timeout and args.raise_timeout:
+            raise _exception.PyShellManTimeoutError(output=output)
         if not output.succeeded and args.raise_exit_code:
             raise _exception.PyShellManNonZeroExitCodeError(output=output)
         if stderr and args.raise_stderr:
@@ -127,9 +138,18 @@ class Runner:
         args: _SimpleNamespace
     ) -> tuple[str | bytes | None, str | bytes | None, int | None]:
         try:
-            process = _subprocess.run(command, text=args.text_output, cwd=args.cwd, capture_output=True)
+            process = _subprocess.run(
+                command,
+                text=args.text_output,
+                cwd=args.cwd,
+                capture_output=True,
+                timeout=args.timeout,
+                **args.subprocess_kwargs,
+            )
         except FileNotFoundError:
             return None, None, None
+        except _subprocess.TimeoutExpired as e:
+            return e.stdout, e.stderr, "TIMEOUT"
         stdout = (process.stdout.strip() if args.text_output else process.stdout) or None
         stderr = (process.stderr.strip() if args.text_output else process.stderr) or None
         code = process.returncode
@@ -151,6 +171,7 @@ class Runner:
                 stdout=_subprocess.PIPE,
                 stderr=_subprocess.PIPE,
                 bufsize=1 if args.text_output else 0,
+                **args.subprocess_kwargs,
             )
         except FileNotFoundError:
             return None, None, None
@@ -190,16 +211,26 @@ class Runner:
 
         for t in threads:
             t.start()
-        process.wait()
+
+        try:
+            process.wait(timeout=args.timeout)
+        except TimeoutError:
+            process.kill()
+            process.wait()  # Allow reader threads to finish draining killed process’s output
+            returncode = "TIMEOUT"
+        else:
+            returncode = process.returncode
+
         for t in threads:
             t.join()
+
         if args.text_output:
             stdout = ''.join(stdout_chunks)
             stderr = ''.join(stderr_chunks)
         else:
             stdout = b''.join(stdout_chunks)
             stderr = b''.join(stderr_chunks)
-        return stdout, stderr, process.returncode
+        return stdout, stderr, returncode
 
 
 def run(
@@ -209,9 +240,12 @@ def run(
     stream_stdout: bool = False,
     stream_stderr: bool = False,
     raise_execution: bool = True,
+    raise_timeout: bool | None = None,
     raise_exit_code: bool = True,
     raise_stderr: bool = False,
     text_output: bool = True,
+    timeout: float | None = None,
+    subprocess_kwargs: dict | None = None,
     logger=None,
     log_title: str = "Shell SubProcess",
     log_level_execution: LogLevel = "critical",
@@ -225,9 +259,12 @@ def run(
         stream_stdout=stream_stdout,
         stream_stderr=stream_stderr,
         raise_execution=raise_execution,
+        raise_timeout=raise_timeout,
         raise_exit_code=raise_exit_code,
         raise_stderr=raise_stderr,
         text_output=text_output,
+        timeout=timeout,
+        subprocess_kwargs=subprocess_kwargs,
         logger=logger,
         log_title=log_title,
         log_level_execution=log_level_execution,

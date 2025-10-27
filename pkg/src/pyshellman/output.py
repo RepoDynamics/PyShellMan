@@ -8,6 +8,7 @@ import ansi_sgr as _sgr
 
 if _TYPE_CHECKING:
     from pathlib import Path
+    from typing import Literal
 
 
 class ShellOutput:
@@ -17,7 +18,7 @@ class ShellOutput:
         title: str,
         command: list[str],
         cwd: Path,
-        code: int | None = None,
+        code: int | Literal["TIMEOUT"] | None = None,
         out: str | bytes | None = None,
         err: str | bytes | None = None,
     ):
@@ -32,6 +33,10 @@ class ShellOutput:
     @property
     def executed(self) -> bool:
         return self.code is not None
+
+    @property
+    def timeout(self) -> bool:
+        return self.code == "TIMEOUT"
 
     @property
     def succeeded(self) -> bool:

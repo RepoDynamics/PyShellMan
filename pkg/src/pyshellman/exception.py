@@ -46,6 +46,17 @@ class PyShellManExecutionError(PyShellManError):
         return
 
 
+class PyShellManTimeoutError(PyShellManError):
+    """Exception raised for timeout in the execution of a command."""
+    def __init__(self, output: ShellOutput):
+        super().__init__(
+            title="Timeout Error",
+            intro=f"Shell command timed out.",
+            output=output
+        )
+        return
+
+
 class PyShellManNonZeroExitCodeError(PyShellManError):
     """Exception raised for non-zero exit code in the execution of a command."""
     def __init__(self, output: ShellOutput):
